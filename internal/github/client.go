@@ -34,7 +34,10 @@ type PullRequest struct {
 	Draft          bool   `json:"draft"`
 	Merged         bool   `json:"merged"`
 	MergeCommitSHA string `json:"merge_commit_sha"`
-	Base           struct {
+	User           struct {
+		Login string `json:"login"`
+	} `json:"user"`
+	Base struct {
 		Ref string `json:"ref"`
 	} `json:"base"`
 }
