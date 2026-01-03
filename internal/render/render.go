@@ -68,10 +68,18 @@ func (r *Renderer) RenderTable(status *core.PRStatus) error {
 	}
 
 	headerFmt := fmt.Sprintf("%%-%ds  STATUS\n", maxNameLen)
-	fmt.Fprintf(r.writer, headerFmt, "CHANNEL")
+	header := fmt.Sprintf(headerFmt, "CHANNEL")
+	if r.useColor {
+		header = fmt.Sprintf("%s%s%s", colorBold, header[:len(header)-1], colorReset+"\n")
+	}
+	fmt.Fprint(r.writer, header)
 
 	dividerLen := maxNameLen + 2 + 6
-	fmt.Fprintln(r.writer, strings.Repeat("-", dividerLen))
+	divider := strings.Repeat("-", dividerLen)
+	if r.useColor {
+		divider = fmt.Sprintf("%s%s%s", colorBold, divider, colorReset)
+	}
+	fmt.Fprintln(r.writer, divider)
 
 	rowFmt := fmt.Sprintf("%%-%ds  %%s\n", maxNameLen)
 	for _, ch := range status.Channels {
