@@ -1,6 +1,6 @@
 # Release Notes: v0.4.0
 
-**Release Summary:** Error handling and structured logging
+**Release Date:** Error handling and structured logging
 
 ## Overview
 
@@ -32,8 +32,8 @@ and a code quality review pass.
 
 ### Visual Fixes
 
-- Fixed Nerd Font icon for merged PRs: now uses `\uf419` (`nf-oct-git_merge`) instead of
-  sharing the same icon as open PRs
+- Fixed Nerd Font icon for merged PRs: now uses `\uf419` (nf-oct-git_merge)
+  instead of sharing the same icon as open PRs
 
 ## Bug Fixes
 

@@ -1,6 +1,6 @@
 # Release Notes: v0.3.0
 
-**Release Highlights:** Shell palette colors and Nerd Fonts
+**Release Date:** Shell palette colors and Nerd Fonts
 
 ## Overview
 
@@ -22,10 +22,10 @@ Improved terminal theming compatibility and added Nerd Font icon support.
 ### Nerd Font Icons
 
 - PR state now displayed with Nerd Font Octicons:
-  - `` Draft PR
-  - `` Open PR
-  - `` Merged PR
-  - `` Closed PR
+  - `\uf4dd` (nf-oct-git_pull_request_draft) Draft PR
+  - `\uf407` (nf-oct-git_pull_request) Open PR
+  - `\uf419` (nf-oct-git_merge) Merged PR
+  - `\uf4dc` (nf-oct-git_pull_request_closed) Closed PR
 - Set `NO_NERD_FONTS=1` to use fallback dot icon (●)
 
 ## Environment Variables
