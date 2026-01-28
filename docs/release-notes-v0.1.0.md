@@ -1,6 +1,6 @@
 # Release Notes: v0.1.0
 
-**Release Date:** Initial release
+**Summary:** Initial release
 
 ## Overview
 

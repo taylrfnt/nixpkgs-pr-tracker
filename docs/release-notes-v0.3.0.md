@@ -1,6 +1,6 @@
 # Release Notes: v0.3.0
 
-**Release Date:** Shell palette colors and Nerd Fonts
+**Summary:** Shell palette colors and Nerd Fonts
 
 ## Overview
 

@@ -1,6 +1,6 @@
 # Release Notes: v0.4.0
 
-**Release Date:** Error handling and structured logging
+**Summary:** Error handling and structured logging
 
 ## Overview
 

@@ -1,6 +1,6 @@
 # Release Notes: v0.2.0
 
-**Release Date:** Post-initial cleanup
+**Summary:** Post-initial cleanup
 
 ## Overview
 
