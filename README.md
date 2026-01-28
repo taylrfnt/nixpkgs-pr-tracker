@@ -49,7 +49,7 @@ nprt --verbose 475593
 ### Example Output
 
 ```
- PR #475593 (golang: 1.23.5 -> 1.23.6)
+● PR #475593 (golang: 1.23.5 -> 1.23.6)
 by: someone
 
 CHANNEL               STATUS
@@ -61,9 +61,9 @@ nixos-unstable-small    ✓
 nixos-unstable          ✗
 ```
 
-The merge icon () and author line are shown for merged PRs. In terminals
-with Nerd Fonts, state-specific icons are displayed (set `NO_NERD_FONTS=1`
-to use a simple dot instead).
+The PR state icon and author line are shown for merged PRs. In terminals with
+Nerd Fonts installed, state-specific icons are displayed (`\uf419` for merged,
+`\uf407` for open, etc.). Set `NO_NERD_FONTS=1` to use a simple dot (●) instead.
 
 ### Options
 
