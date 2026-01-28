@@ -9,8 +9,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 const (
@@ -23,7 +24,7 @@ type Client struct {
 	BaseURL    string
 	Token      string
 	HTTPClient *http.Client
-	Verbose    bool
+	log        *zap.Logger
 }
 
 // PullRequest represents a GitHub pull request with relevant fields.
@@ -91,23 +92,22 @@ type Issue struct {
 }
 
 // NewClient creates a new GitHub API client with the given token.
-func NewClient(token string, verbose bool) *Client {
+// NewClient creates a new GitHub API client with the given token and logger.
+func NewClient(token string, log *zap.Logger) *Client {
 	return &Client{
 		BaseURL: DefaultBaseURL,
 		Token:   token,
 		HTTPClient: &http.Client{
 			Timeout: DefaultTimeout,
 		},
-		Verbose: verbose,
+		log: log.Named("github"),
 	}
 }
 
 func (c *Client) doRequest(ctx context.Context, method, path string) ([]byte, error) {
 	url := c.BaseURL + path
 
-	if c.Verbose {
-		fmt.Fprintf(os.Stderr, "  → %s %s\n", method, url)
-	}
+	c.log.Debug("request", zap.String("method", method), zap.String("url", url))
 
 	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
@@ -126,9 +126,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string) ([]byte, er
 	}
 	defer resp.Body.Close()
 
-	if c.Verbose {
-		fmt.Fprintf(os.Stderr, "  ← %d %s\n", resp.StatusCode, resp.Status)
-	}
+	c.log.Debug("response", zap.Int("status_code", resp.StatusCode), zap.String("status", resp.Status))
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

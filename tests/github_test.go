@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"go.uber.org/zap"
+
 	"github.com/taylrfnt/nixpkgs-pr-tracker/internal/github"
 )
 
@@ -27,7 +29,7 @@ func TestGetPullRequest_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := github.NewClient("", false)
+	client := github.NewClient("", zap.NewNop())
 	client.BaseURL = server.URL
 
 	pr, err := client.GetPullRequest(context.Background(), 476497)
@@ -54,7 +56,7 @@ func TestGetPullRequest_NotFound(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := github.NewClient("", false)
+	client := github.NewClient("", zap.NewNop())
 	client.BaseURL = server.URL
 
 	_, err := client.GetPullRequest(context.Background(), 999999)
@@ -93,7 +95,7 @@ func TestGetPullRequest_IsIssueNotPR(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := github.NewClient("", false)
+	client := github.NewClient("", zap.NewNop())
 	client.BaseURL = server.URL
 
 	_, err := client.GetPullRequest(context.Background(), 12345)
@@ -124,7 +126,7 @@ func TestGetPullRequest_RateLimit(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := github.NewClient("", false)
+	client := github.NewClient("", zap.NewNop())
 	client.BaseURL = server.URL
 
 	_, err := client.GetPullRequest(context.Background(), 123)
@@ -143,7 +145,7 @@ func TestCompareCommitWithBranch_CommitInBranch(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := github.NewClient("", false)
+	client := github.NewClient("", zap.NewNop())
 	client.BaseURL = server.URL
 
 	result, err := client.CompareCommitWithBranch(context.Background(), "abc123", "master")
@@ -162,7 +164,7 @@ func TestCompareCommitWithBranch_CommitNotInBranch(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := github.NewClient("", false)
+	client := github.NewClient("", zap.NewNop())
 	client.BaseURL = server.URL
 
 	result, err := client.CompareCommitWithBranch(context.Background(), "abc123", "nixos-unstable")

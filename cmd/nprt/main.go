@@ -10,9 +10,12 @@ import (
 	"strings"
 	"syscall"
 
+	"go.uber.org/zap"
+
 	"github.com/taylrfnt/nixpkgs-pr-tracker/internal/config"
 	"github.com/taylrfnt/nixpkgs-pr-tracker/internal/core"
 	"github.com/taylrfnt/nixpkgs-pr-tracker/internal/github"
+	"github.com/taylrfnt/nixpkgs-pr-tracker/internal/logging"
 	"github.com/taylrfnt/nixpkgs-pr-tracker/internal/render"
 )
 
@@ -100,12 +103,14 @@ func run() int {
 
 	token := config.GetGitHubToken()
 
-	if verbose {
-		fmt.Fprintf(os.Stderr, "Fetching PR #%d from NixOS/nixpkgs...\n", prNumber)
-	}
+	// Create logger based on verbose flag
+	log := logging.New(verbose)
+	defer func() { _ = log.Sync() }()
 
-	client := github.NewClient(token, verbose)
-	checker := core.NewChecker(client, verbose)
+	log.Debug("fetching PR", zap.Int("pr", prNumber))
+
+	client := github.NewClient(token, log)
+	checker := core.NewChecker(client, log)
 
 	// Set up context with signal handling for clean cancellation
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
