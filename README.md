@@ -1,7 +1,35 @@
-# nprt - NixPkgs PR Tracker
+<div align="center">
+    <img src=".github/assets/nprt.png" alt="nprt Logo">
+    <br/>
+    <h1>nprt</h1>
+</div>
 
-A CLI tool to track which [nixpkgs](https://github.com/NixOS/nixpkgs) channels
-contain a given pull request.
+<div align="center">
+  <p>
+    <a href="https://github.com/thatsneat-dev/nprt/releases/latest">
+      <img alt="Latest release" src="https://img.shields.io/github/v/release/thatsneat-dev/nprt?style=for-the-badge&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41" />
+    </a>
+    <a href="https://github.com/thatsneat-dev/nprt/pulse">
+      <img alt="Last commit" src="https://img.shields.io/github/last-commit/thatsneat-dev/nprt?style=for-the-badge&color=8bd5ca&logoColor=D9E0EE&labelColor=302D41"/>
+    </a>
+    <a href="https://github.com/thatsneat-dev/nprt/blob/main/LICENSE">
+      <img alt="License" src="https://img.shields.io/github/license/thatsneat-dev/nprt?style=for-the-badge&color=ee999f&logoColor=D9E0EE&labelColor=302D41" />
+    </a>
+    <a href="https://github.com/thatsneat-dev/nprt/stargazers">
+      <img alt="Stars" src="https://img.shields.io/github/stars/thatsneat-dev/nprt?style=for-the-badge&color=c69ff5&logoColor=D9E0EE&labelColor=302D41" />
+    </a>
+    <a href="https://github.com/NotAShelf/nvf/issues">
+      <img alt="Issues" src="https://img.shields.io/github/issues/thatsneat-dev/nprt?style=for-the-badge&color=F5E0DC&logoColor=D9E0EE&labelColor=302D41" />
+    </a>
+    <a href="https://github.com/thatsneat-dev/nprt">
+      <img alt="Repo Size" src="https://img.shields.io/github/repo-size/thatsneat-dev/nprt?color=%23DDB6F2&label=SIZE&style=for-the-badge&logoColor=D9E0EE&labelColor=302D41" />
+    </a>
+  </p>
+</div>
+
+`nprt` (**N**ixpkgs **PR** **T**racker) is a CLI tool to track which
+[nixpkgs](https://github.com/NixOS/nixpkgs) channels contain a given pull
+request.
 
 ## Features
 
@@ -67,15 +95,15 @@ Nerd Fonts installed, state-specific icons are displayed (`\uf419` for merged,
 
 ### Options
 
-| Option       | Description                                             |
-| ------------ | ------------------------------------------------------- |
-| `--channels` | Comma-separated list of channels to check               |
-| `--color`    | Color mode: `auto`, `always`, `never` (default: `auto`) |
-| `--json`     | Output results as JSON                                  |
-| `--verbose`  | Show detailed progress and debug information            |
-| `--version`  | Print version and exit                                  |
+| Option             | Description                                                 |
+| ------------------ | ----------------------------------------------------------- |
+| `--channels`       | Comma-separated list of channels to check                   |
+| `--color`          | Color mode: `auto`, `always`, `never` (default: `auto`)     |
+| `--json`           | Output results as JSON                                      |
+| `--verbose`        | Show detailed progress and debug information                |
+| `--version`        | Print version and exit                                      |
 | `--timeline-pages` | Max pages of timeline to fetch for related PRs (default: 3) |
-| `-h, --help` | Show help message                                       |
+| `-h, --help`       | Show help message                                           |
 
 ### Environment Variables
 
@@ -87,9 +115,9 @@ Nerd Fonts installed, state-specific icons are displayed (`\uf419` for merged,
 
 ## Issue Handling
 
-If you provide an issue number instead of a PR number, nprt will detect this
-and display a warning with the issue details and any related pull requests
-found in the issue's timeline:
+If you provide an issue number instead of a PR number, nprt will detect this and
+display a warning with the issue details and any related pull requests found in
+the issue's timeline:
 
 ```
 WARNING: input is an issue, not a pull request
