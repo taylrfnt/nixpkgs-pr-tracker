@@ -21,10 +21,11 @@ const (
 
 // Client is a GitHub API client configured for NixOS/nixpkgs.
 type Client struct {
-	BaseURL    string
-	Token      string
-	HTTPClient *http.Client
-	log        *zap.Logger
+	BaseURL       string
+	Token         string
+	HTTPClient    *http.Client
+	TimelinePages int
+	log           *zap.Logger
 }
 
 // PullRequest represents a GitHub pull request with relevant fields.
@@ -73,31 +74,47 @@ func (e *NotFoundError) Error() string {
 // NotPullRequestError indicates that the number exists but is an Issue, not a PR.
 // Callers can detect this with: var npr *NotPullRequestError; errors.As(err, &npr)
 type NotPullRequestError struct {
-	Number int
-	Title  string
-	URL    string
+	Number     int
+	Title      string
+	State      string
+	URL        string
+	RelatedPRs []RelatedPR
 }
 
 func (e *NotPullRequestError) Error() string {
+	var base string
 	if e.Title != "" {
-		return fmt.Sprintf("#%d is an issue, not a pull request: %q (%s)", e.Number, e.Title, e.URL)
+		base = fmt.Sprintf("#%d is an issue, not a pull request: %q (%s)", e.Number, e.Title, e.URL)
+	} else {
+		base = fmt.Sprintf("#%d is an issue, not a pull request", e.Number)
 	}
-	return fmt.Sprintf("#%d is an issue, not a pull request", e.Number)
+
+	if len(e.RelatedPRs) == 0 {
+		return base
+	}
+
+	base += "\n\nRelated pull requests:"
+	for _, pr := range e.RelatedPRs {
+		base += fmt.Sprintf("\n  • #%d (%s): %s", pr.Number, pr.State, pr.Title)
+	}
+	return base
 }
 
 // Issue represents a GitHub issue with minimal fields for type detection.
 type Issue struct {
-	Number      int     `json:"number"`
-	Title       string  `json:"title"`
-	HTMLURL     string  `json:"html_url"`
+	Number      int       `json:"number"`
+	Title       string    `json:"title"`
+	State       string    `json:"state"`
+	HTMLURL     string    `json:"html_url"`
 	PullRequest *struct{} `json:"pull_request"`
 }
 
 // NewClient creates a new GitHub API client with the given token and logger.
 func NewClient(token string, log *zap.Logger) *Client {
 	return &Client{
-		BaseURL: DefaultBaseURL,
-		Token:   token,
+		BaseURL:       DefaultBaseURL,
+		Token:         token,
+		TimelinePages: DefaultTimelinePages,
 		HTTPClient: &http.Client{
 			Timeout: DefaultTimeout,
 		},
@@ -215,10 +232,13 @@ func (c *Client) disambiguateNotFound(ctx context.Context, number int) error {
 	issue, err := c.GetIssue(ctx, number)
 	if err == nil {
 		if issue.PullRequest == nil {
+			relatedPRs := c.GetRelatedPRs(ctx, number, c.TimelinePages)
 			return &NotPullRequestError{
-				Number: number,
-				Title:  issue.Title,
-				URL:    issue.HTMLURL,
+				Number:     number,
+				Title:      issue.Title,
+				State:      issue.State,
+				URL:        issue.HTMLURL,
+				RelatedPRs: relatedPRs,
 			}
 		}
 		// The issue endpoint says it's a PR, but /pulls returned 404.

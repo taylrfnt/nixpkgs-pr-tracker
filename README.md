@@ -74,6 +74,7 @@ Nerd Fonts installed, state-specific icons are displayed (`\uf419` for merged,
 | `--json`     | Output results as JSON                                  |
 | `--verbose`  | Show detailed progress and debug information            |
 | `--version`  | Print version and exit                                  |
+| `--timeline-pages` | Max pages of timeline to fetch for related PRs (default: 3) |
 | `-h, --help` | Show help message                                       |
 
 ### Environment Variables
@@ -83,6 +84,25 @@ Nerd Fonts installed, state-specific icons are displayed (`\uf419` for merged,
 | `GITHUB_TOKEN`  | GitHub personal access token for higher API rate limits                       |
 | `NO_COLOR`      | Disable colors when set (respects [NO_COLOR](https://no-color.org/) standard) |
 | `NO_NERD_FONTS` | Disable Nerd Font icons and use fallback dots                                 |
+
+## Issue Handling
+
+If you provide an issue number instead of a PR number, nprt will detect this
+and display a warning with the issue details and any related pull requests
+found in the issue's timeline:
+
+```
+WARNING: input is an issue, not a pull request
+ Issue #12345 (Example issue title)
+
+Related pull requests:
+
+   #67890  Fix for issue 12345
+   #67891  Another related fix
+```
+
+The related PRs are discovered via GitHub's timeline API. Use `--timeline-pages`
+to control how many pages of timeline events to fetch (default: 3).
 
 ## Channels
 
