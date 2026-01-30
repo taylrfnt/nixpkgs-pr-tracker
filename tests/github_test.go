@@ -239,3 +239,253 @@ func TestAPIError_ParsesJSONMessage(t *testing.T) {
 		t.Errorf("APIError.Message = %q, want %q", apiErr.Message, "Validation Failed")
 	}
 }
+
+func TestGetPullRequest_IsIssueWithRelatedPRs(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/pulls/") {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"message": "Not Found"}`))
+			return
+		}
+		if strings.Contains(r.URL.Path, "/timeline") {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[
+				{
+					"event": "cross-referenced",
+					"source": {
+						"issue": {
+							"number": 123456,
+							"title": "Fix the bug",
+							"state": "open",
+							"html_url": "https://github.com/NixOS/nixpkgs/pull/123456",
+							"pull_request": {},
+							"repository": {"full_name": "NixOS/nixpkgs"}
+						}
+					}
+				},
+				{
+					"event": "cross-referenced",
+					"source": {
+						"issue": {
+							"number": 789012,
+							"title": "Another fix",
+							"state": "closed",
+							"html_url": "https://github.com/NixOS/nixpkgs/pull/789012",
+							"pull_request": {"merged_at": "2024-01-01T00:00:00Z"},
+							"repository": {"full_name": "NixOS/nixpkgs"}
+						}
+					}
+				},
+				{
+					"event": "cross-referenced",
+					"source": {
+						"issue": {
+							"number": 999,
+							"title": "External PR",
+							"state": "open",
+							"html_url": "https://github.com/other/repo/pull/999",
+							"pull_request": {},
+							"repository": {"full_name": "other/repo"}
+						}
+					}
+				},
+				{
+					"event": "commented",
+					"body": "Just a comment"
+				}
+			]`))
+			return
+		}
+		if strings.Contains(r.URL.Path, "/issues/") {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{
+				"number": 12345,
+				"title": "Some bug report",
+				"html_url": "https://github.com/NixOS/nixpkgs/issues/12345"
+			}`))
+			return
+		}
+		t.Errorf("unexpected path: %s", r.URL.Path)
+	}))
+	defer server.Close()
+
+	client := github.NewClient("", zap.NewNop())
+	client.BaseURL = server.URL
+
+	_, err := client.GetPullRequest(context.Background(), 12345)
+	if err == nil {
+		t.Fatal("GetPullRequest should have returned error")
+	}
+
+	var notPRErr *github.NotPullRequestError
+	if !errors.As(err, &notPRErr) {
+		t.Errorf("error should be NotPullRequestError, got: %T (%v)", err, err)
+	}
+
+	if len(notPRErr.RelatedPRs) != 2 {
+		t.Errorf("expected 2 related PRs, got %d", len(notPRErr.RelatedPRs))
+	}
+
+	if notPRErr.RelatedPRs[0].Number != 123456 {
+		t.Errorf("first related PR number = %d, want 123456", notPRErr.RelatedPRs[0].Number)
+	}
+	if notPRErr.RelatedPRs[1].Number != 789012 {
+		t.Errorf("second related PR number = %d, want 789012", notPRErr.RelatedPRs[1].Number)
+	}
+
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "Related pull requests:") {
+		t.Errorf("error message should contain 'Related pull requests:': %v", errMsg)
+	}
+	if !strings.Contains(errMsg, "#123456") {
+		t.Errorf("error message should contain PR #123456: %v", errMsg)
+	}
+}
+
+func TestGetPullRequest_IsIssueTimelineFails(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/pulls/") {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"message": "Not Found"}`))
+			return
+		}
+		if strings.Contains(r.URL.Path, "/timeline") {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"message": "Internal Server Error"}`))
+			return
+		}
+		if strings.Contains(r.URL.Path, "/issues/") {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{
+				"number": 12345,
+				"title": "Some bug report",
+				"html_url": "https://github.com/NixOS/nixpkgs/issues/12345"
+			}`))
+			return
+		}
+		t.Errorf("unexpected path: %s", r.URL.Path)
+	}))
+	defer server.Close()
+
+	client := github.NewClient("", zap.NewNop())
+	client.BaseURL = server.URL
+
+	_, err := client.GetPullRequest(context.Background(), 12345)
+	if err == nil {
+		t.Fatal("GetPullRequest should have returned error")
+	}
+
+	var notPRErr *github.NotPullRequestError
+	if !errors.As(err, &notPRErr) {
+		t.Errorf("error should be NotPullRequestError, got: %T (%v)", err, err)
+	}
+
+	if len(notPRErr.RelatedPRs) != 0 {
+		t.Errorf("expected 0 related PRs when timeline fails, got %d", len(notPRErr.RelatedPRs))
+	}
+
+	errMsg := err.Error()
+	if strings.Contains(errMsg, "Related pull requests:") {
+		t.Errorf("error message should not contain 'Related pull requests:' when none found: %v", errMsg)
+	}
+}
+
+func TestGetRelatedPRs_DeduplicatesPRs(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`[
+			{
+				"event": "cross-referenced",
+				"source": {
+					"issue": {
+						"number": 123456,
+						"title": "Fix the bug",
+						"state": "open",
+						"html_url": "https://github.com/NixOS/nixpkgs/pull/123456",
+						"pull_request": {},
+						"repository": {"full_name": "NixOS/nixpkgs"}
+					}
+				}
+			},
+			{
+				"event": "cross-referenced",
+				"source": {
+					"issue": {
+						"number": 123456,
+						"title": "Fix the bug",
+						"state": "open",
+						"html_url": "https://github.com/NixOS/nixpkgs/pull/123456",
+						"pull_request": {},
+						"repository": {"full_name": "NixOS/nixpkgs"}
+					}
+				}
+			}
+		]`))
+	}))
+	defer server.Close()
+
+	client := github.NewClient("", zap.NewNop())
+	client.BaseURL = server.URL
+
+	related := client.GetRelatedPRs(context.Background(), 12345, 3)
+	if len(related) != 1 {
+		t.Errorf("expected 1 deduplicated PR, got %d", len(related))
+	}
+}
+
+func TestGetRelatedPRs_MergedAtSetsMergedState(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`[
+			{
+				"event": "cross-referenced",
+				"source": {
+					"issue": {
+						"number": 111,
+						"title": "Merged PR",
+						"state": "closed",
+						"html_url": "https://github.com/NixOS/nixpkgs/pull/111",
+						"pull_request": {"merged_at": "2024-01-15T12:00:00Z"},
+						"repository": {"full_name": "NixOS/nixpkgs"}
+					}
+				}
+			},
+			{
+				"event": "cross-referenced",
+				"source": {
+					"issue": {
+						"number": 222,
+						"title": "Closed PR",
+						"state": "closed",
+						"html_url": "https://github.com/NixOS/nixpkgs/pull/222",
+						"pull_request": {},
+						"repository": {"full_name": "NixOS/nixpkgs"}
+					}
+				}
+			}
+		]`))
+	}))
+	defer server.Close()
+
+	client := github.NewClient("", zap.NewNop())
+	client.BaseURL = server.URL
+
+	related := client.GetRelatedPRs(context.Background(), 12345, 3)
+	if len(related) != 2 {
+		t.Fatalf("expected 2 related PRs, got %d", len(related))
+	}
+
+	if related[0].Number != 111 {
+		t.Errorf("first PR number = %d, want 111", related[0].Number)
+	}
+	if related[0].State != "merged" {
+		t.Errorf("first PR state = %q, want %q (closed with merged_at should be merged)", related[0].State, "merged")
+	}
+
+	if related[1].Number != 222 {
+		t.Errorf("second PR number = %d, want 222", related[1].Number)
+	}
+	if related[1].State != "closed" {
+		t.Errorf("second PR state = %q, want %q (closed without merged_at should be closed)", related[1].State, "closed")
+	}
+}

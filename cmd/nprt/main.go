@@ -30,12 +30,13 @@ Arguments:
   PR URL       A full GitHub PR URL (e.g., https://github.com/NixOS/nixpkgs/pull/476497)
 
 Options:
-  --channels   Comma-separated list of channels to check (default: master,staging-next,nixpkgs-unstable,nixos-unstable-small,nixos-unstable)
-  --color      Color output mode: auto, always, never (default: auto)
-  --json       Output results as JSON
-  --verbose    Show detailed progress and debug information
-  --version    Print version and exit
-  -h, --help   Show this help message
+  --channels         Comma-separated list of channels to check (default: master,staging-next,nixpkgs-unstable,nixos-unstable-small,nixos-unstable)
+  --color            Color output mode: auto, always, never (default: auto)
+  --json             Output results as JSON
+  --timeline-pages   Number of timeline pages to fetch for related PRs (default: 3)
+  --verbose          Show detailed progress and debug information
+  --version          Print version and exit
+  -h, --help         Show this help message
 
 Environment:
   GITHUB_TOKEN  GitHub personal access token for higher rate limits
@@ -47,16 +48,18 @@ func main() {
 
 func run() int {
 	var (
-		channelsFlag string
-		colorMode    string
-		jsonOutput   bool
-		verbose      bool
-		showVersion  bool
+		channelsFlag  string
+		colorMode     string
+		jsonOutput    bool
+		timelinePages int
+		verbose       bool
+		showVersion   bool
 	)
 
 	flag.StringVar(&channelsFlag, "channels", "", "Comma-separated list of channels to check")
 	flag.StringVar(&colorMode, "color", "auto", "Color output: auto, always, never")
 	flag.BoolVar(&jsonOutput, "json", false, "Output results as JSON")
+	flag.IntVar(&timelinePages, "timeline-pages", github.DefaultTimelinePages, "Number of timeline pages to fetch for related PRs")
 	flag.BoolVar(&verbose, "verbose", false, "Show detailed progress and debug information")
 	flag.BoolVar(&showVersion, "version", false, "Print version and exit")
 
@@ -110,6 +113,7 @@ func run() int {
 	log.Debug("fetching PR", zap.Int("pr", prNumber))
 
 	client := github.NewClient(token, log)
+	client.TimelinePages = timelinePages
 	checker := core.NewChecker(client, log)
 
 	// Set up context with signal handling for clean cancellation
@@ -124,6 +128,29 @@ func run() int {
 			fmt.Fprintln(os.Stderr, render.FormatError(apiErr.Message, useColor))
 			return 3
 		}
+
+		// NotPullRequestError gets special rendering with icons/colors/hyperlinks
+		var notPRErr *github.NotPullRequestError
+		if errors.As(err, &notPRErr) {
+			info := render.IssueWarning{
+				Number: notPRErr.Number,
+				Title:  notPRErr.Title,
+				State:  notPRErr.State,
+				URL:    notPRErr.URL,
+			}
+			for _, pr := range notPRErr.RelatedPRs {
+				info.RelatedPRs = append(info.RelatedPRs, render.RelatedPR{
+					Number: pr.Number,
+					Title:  pr.Title,
+					URL:    pr.URL,
+					State:  pr.State,
+				})
+			}
+			errRenderer := render.NewRenderer(os.Stderr, useColor, useHyperlinks)
+			_ = errRenderer.RenderIssueWarning(info)
+			return 1
+		}
+
 		fmt.Fprintln(os.Stderr, render.FormatError(err.Error(), useColor))
 		return 1
 	}

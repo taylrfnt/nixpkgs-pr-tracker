@@ -232,3 +232,110 @@ func TestFormatError_WithoutColor(t *testing.T) {
 		t.Error("FormatError without color should not contain ANSI codes")
 	}
 }
+
+func TestRenderIssueWarning_WithHyperlinks(t *testing.T) {
+	info := render.IssueWarning{
+		Number: 12345,
+		Title:  "Test issue",
+		State:  "open",
+		URL:    "https://github.com/NixOS/nixpkgs/issues/12345",
+		RelatedPRs: []render.RelatedPR{
+			{
+				Number: 67890,
+				Title:  "Fix for issue",
+				URL:    "https://github.com/NixOS/nixpkgs/pull/67890",
+				State:  "open",
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	renderer := render.NewRenderer(&buf, false, true)
+	err := renderer.RenderIssueWarning(info)
+	if err != nil {
+		t.Fatalf("RenderIssueWarning returned error: %v", err)
+	}
+
+	result := buf.String()
+	if !strings.Contains(result, "\033]8;;") {
+		t.Error("Output should contain OSC 8 hyperlink start sequence")
+	}
+	if !strings.Contains(result, "\033]8;;\033\\") {
+		t.Error("Output should contain OSC 8 hyperlink end sequence")
+	}
+	if !strings.Contains(result, "https://github.com/NixOS/nixpkgs/issues/12345") {
+		t.Error("Output should contain issue URL")
+	}
+	if !strings.Contains(result, "https://github.com/NixOS/nixpkgs/pull/67890") {
+		t.Error("Output should contain PR URL")
+	}
+	if !strings.Contains(result, "Related pull requests:") {
+		t.Error("Output should contain related PRs header")
+	}
+	if !strings.Contains(result, "WARNING:") {
+		t.Error("Output should contain WARNING prefix")
+	}
+}
+
+func TestRenderIssueWarning_WithoutHyperlinks(t *testing.T) {
+	info := render.IssueWarning{
+		Number: 12345,
+		Title:  "Test issue",
+		State:  "open",
+		URL:    "https://github.com/NixOS/nixpkgs/issues/12345",
+		RelatedPRs: []render.RelatedPR{
+			{
+				Number: 67890,
+				Title:  "Fix for issue",
+				URL:    "https://github.com/NixOS/nixpkgs/pull/67890",
+				State:  "open",
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	renderer := render.NewRenderer(&buf, false, false)
+	err := renderer.RenderIssueWarning(info)
+	if err != nil {
+		t.Fatalf("RenderIssueWarning returned error: %v", err)
+	}
+
+	result := buf.String()
+	if strings.Contains(result, "\033]8;;") {
+		t.Error("Output should not contain OSC 8 hyperlink sequences when disabled")
+	}
+	if !strings.Contains(result, "#12345") {
+		t.Error("Output should contain issue number")
+	}
+	if !strings.Contains(result, "#67890") {
+		t.Error("Output should contain related PR number")
+	}
+}
+
+func TestRenderIssueWarning_IssueStates(t *testing.T) {
+	tests := []struct {
+		state    string
+		expected string
+	}{
+		{"open", "Issue #123"},
+		{"closed", "Issue #123"},
+	}
+
+	for _, tc := range tests {
+		info := render.IssueWarning{
+			Number: 123,
+			Title:  "Test",
+			State:  tc.state,
+			URL:    "https://github.com/NixOS/nixpkgs/issues/123",
+		}
+
+		var buf bytes.Buffer
+		renderer := render.NewRenderer(&buf, false, false)
+		_ = renderer.RenderIssueWarning(info)
+
+		result := buf.String()
+		if !strings.Contains(result, tc.expected) {
+			t.Errorf("state=%s: expected output to contain %q, got: %s", tc.state, tc.expected, result)
+		}
+	}
+}

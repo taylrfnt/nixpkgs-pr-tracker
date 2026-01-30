@@ -37,7 +37,11 @@ type Channel struct {
 // prURLRegex matches GitHub PR URLs for the NixOS/nixpkgs repository.
 var prURLRegex = regexp.MustCompile(`^https://github\.com/NixOS/nixpkgs/pull/(\d+)/?$`)
 
-// ParsePRInput parses a PR number or GitHub PR URL and returns the PR number.
+// issueURLRegex matches GitHub issue URLs for the NixOS/nixpkgs repository.
+var issueURLRegex = regexp.MustCompile(`^https://github\.com/NixOS/nixpkgs/issues/(\d+)/?$`)
+
+// ParsePRInput parses a PR number or GitHub PR/issue URL and returns the number.
+// Issue URLs are accepted so that the user gets helpful error messages with related PRs.
 func ParsePRInput(input string) (int, error) {
 	input = strings.TrimSpace(input)
 
@@ -49,13 +53,18 @@ func ParsePRInput(input string) (int, error) {
 	}
 
 	matches := prURLRegex.FindStringSubmatch(input)
-	if matches == nil {
-		return 0, fmt.Errorf("invalid PR input: must be a number or https://github.com/NixOS/nixpkgs/pull/{number}")
+	if matches != nil {
+		num, _ := strconv.Atoi(matches[1])
+		return num, nil
 	}
 
-	// Error ignored: regex guarantees matches[1] contains only digits
-	num, _ := strconv.Atoi(matches[1])
-	return num, nil
+	matches = issueURLRegex.FindStringSubmatch(input)
+	if matches != nil {
+		num, _ := strconv.Atoi(matches[1])
+		return num, nil
+	}
+
+	return 0, fmt.Errorf("invalid PR input: must be a number or https://github.com/NixOS/nixpkgs/pull/{number}")
 }
 
 // ParseChannels parses a comma-separated list of channel names and returns

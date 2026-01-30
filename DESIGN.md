@@ -99,9 +99,17 @@ When `--json` is specified, output follows this schema:
    - Call `GET /repos/NixOS/nixpkgs/pulls/{number}`:
      - Use fields: `state`, `merged`, `merge_commit_sha`, `base.ref`.
    - Cases:
-     - `404`: "PR not found."
+     - `404`: Check if it's an issue (see step 2a below).
      - `state != "closed"` or `merged == false`: "PR not merged yet."
      - `merged == true`: Use `merge_commit_sha` as the canonical commit.
+
+2a. **Issue detection and related PR lookup**
+   - If `/pulls/{number}` returns 404, call `GET /repos/NixOS/nixpkgs/issues/{number}`:
+     - If it exists and is not a PR, display issue warning with title/state.
+     - Fetch timeline events via `GET /repos/NixOS/nixpkgs/issues/{number}/timeline`
+       (paginated, controlled by `--timeline-pages` flag, default: 3 pages).
+     - Extract `cross-referenced` events that link to PRs in the same repo.
+     - Display related PRs with their state icons (open/merged/closed/draft).
 
 3. **Check "is commit in branch?" via compare API**
    - For each channel branch, call:

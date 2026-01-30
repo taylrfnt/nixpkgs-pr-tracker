@@ -35,6 +35,8 @@ func TestParsePRInput_ValidURL(t *testing.T) {
 		{"https://github.com/NixOS/nixpkgs/pull/476497", 476497},
 		{"https://github.com/NixOS/nixpkgs/pull/1", 1},
 		{"https://github.com/NixOS/nixpkgs/pull/476497/", 476497},
+		{"https://github.com/NixOS/nixpkgs/issues/123", 123},
+		{"https://github.com/NixOS/nixpkgs/issues/483584/", 483584},
 	}
 
 	for _, tc := range tests {
@@ -55,7 +57,7 @@ func TestParsePRInput_Invalid(t *testing.T) {
 		"-1",
 		"0",
 		"https://github.com/other/repo/pull/123",
-		"https://github.com/NixOS/nixpkgs/issues/123",
+		"https://github.com/other/repo/issues/123",
 		"github.com/NixOS/nixpkgs/pull/123",
 	}
 
